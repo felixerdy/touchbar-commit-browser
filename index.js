@@ -3,32 +3,29 @@ require('isomorphic-fetch');
 
 const url = require('url')
 const path = require('path')
-const {ipcMain} = require('electron')
 
-
-
-const {app, BrowserWindow, TouchBar} = require('electron')
+const {app, BrowserWindow, TouchBar, ipcMain} = require('electron')
 
 const {TouchBarLabel, TouchBarButton, TouchBarSpacer, TouchBarColorPicker, TouchBarSlider} = TouchBar
 
-var commits = []
-var index = 0
+let commits = []
+let index = 0
 
-var tbDateLabel = new TouchBarLabel({
+const tbDateLabel = new TouchBarLabel({
   label: 'Date',
   textColor: '#a0aacc'
 })
 
-var tbAuthorLabel = new TouchBarLabel({
+const tbAuthorLabel = new TouchBarLabel({
   label: 'Author',
   textColor: '#ffffff'
 })
 
-var tbMsgLabel = new TouchBarLabel({
+const tbMsgLabel = new TouchBarLabel({
   label: 'Commit message'
 })
 
-var tbLeftButton = new TouchBarButton({
+const tbLeftButton = new TouchBarButton({
   label: '‹',
   click: () => {
     if(index !== 0) {
@@ -38,7 +35,7 @@ var tbLeftButton = new TouchBarButton({
   }
 })
 
-var tbRightButton = new TouchBarButton({
+const tbRightButton = new TouchBarButton({
   label: '›',
   click: () => {
     if(index !== commits.length-1) {
@@ -71,6 +68,7 @@ app.once('ready', () => {
 })
 
 function setCommitLabels() {
+  tbAuthorLabel.textColor = '#ffffff'
   commitDate = new Date(commits[index].commit.author.date)
   tbDateLabel.label = commitDate.toLocaleString()
   tbAuthorLabel.label = commits[index].commit.author.name
@@ -83,9 +81,15 @@ ipcMain.on('repoURLUpdate', (event, arg) => {
     return response.json();
   })
   .then(json => {
-    console.log('got json')
     commits = json
     index = 0
     setCommitLabels()
-  });
+  }).catch(ex => {
+    console.log('parsing failed', ex)
+    commitDate = new Date()
+    tbDateLabel.label = commitDate.toLocaleString()
+    tbAuthorLabel.label = 'ERROR'
+    tbAuthorLabel.textColor = '#ff0022'
+    tbMsgLabel.label = ex.toString()
+  })
 })
